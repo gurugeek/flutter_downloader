@@ -13,6 +13,7 @@
 #define KEY_SAVED_DIR @"saved_dir"
 #define KEY_FILE_NAME @"file_name"
 #define KEY_PROGRESS @"progress"
+#define KEY_UPDATE_TIME @"update_time"
 #define KEY_ID @"id"
 #define KEY_IDS @"ids"
 #define KEY_TASK_ID @"task_id"
@@ -28,8 +29,6 @@
 
 #define ERROR_NOT_INITIALIZED [FlutterError errorWithCode:@"not_initialized" message:@"initialize() must called first" details:nil]
 #define ERROR_INVALID_TASK_ID [FlutterError errorWithCode:@"invalid_task_id" message:@"not found task corresponding to given task id" details:nil]
-
-#define STEP_UPDATE 5
 
 @interface FlutterDownloaderPlugin()<NSURLSessionTaskDelegate, NSURLSessionDownloadDelegate, UIDocumentInteractionControllerDelegate>
 {
@@ -264,7 +263,7 @@ static BOOL debug = YES;
 
 - (void)sendUpdateProgressForTaskId: (NSString*)taskId inStatus: (NSNumber*) status andProgress: (NSNumber*) progress
 {
-    NSArray *args = @[@(_callbackHandle), taskId, status, progress];
+    NSArray *args = @[@(_callbackHandle), taskId, status, @([progress doubleValue])];
     if (initialized) {
         [_callbackChannel invokeMethod:@"" arguments:args];
     } else {
@@ -861,15 +860,22 @@ static BOOL debug = YES;
         }
     } else {
         NSString *taskId = [self identifierForTask:downloadTask];
-        int progress = round(totalBytesWritten * 100 / (double)totalBytesExpectedToWrite);
+        double progressDouble = totalBytesWritten * 100 / (double)totalBytesExpectedToWrite;
+        int progress = round(progressDouble);
         NSNumber *lastProgress = _runningTaskById[taskId][KEY_PROGRESS];
-        if (([lastProgress intValue] == 0 || (progress > [lastProgress intValue] + STEP_UPDATE) || progress == 100) && progress != [lastProgress intValue]) {
-            [self sendUpdateProgressForTaskId:taskId inStatus:@(STATUS_RUNNING) andProgress:@(progress)];
-            __typeof__(self) __weak weakSelf = self;
-            dispatch_sync(databaseQueue, ^{
-                [weakSelf updateTask:taskId status:STATUS_RUNNING progress:progress];
+        NSNumber *lastUpdate = _runningTaskById[taskId][KEY_UPDATE_TIME];
+        NSDate *now = [NSDate date];
+        NSTimeInterval nowEpoch = [now timeIntervalSince1970];
+        if (nowEpoch - [lastUpdate doubleValue] > 1) {
+            [self sendUpdateProgressForTaskId:taskId inStatus:@(STATUS_RUNNING) andProgress:@(progressDouble)];
+            if([lastProgress intValue] != progress){
+                __typeof__(self) __weak weakSelf = self;
+                dispatch_sync(databaseQueue, ^{
+                    [weakSelf updateTask:taskId status:STATUS_RUNNING progress:progress];
             });
+            }
             _runningTaskById[taskId][KEY_PROGRESS] = @(progress);
+            _runningTaskById[taskId][KEY_UPDATE_TIME] = @(nowEpoch);
         }
     }
 }

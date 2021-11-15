@@ -98,6 +98,7 @@ public class DownloadWorker extends Worker implements MethodChannel.MethodCallHa
     private int primaryId;
     private String msgStarted, msgInProgress, msgCanceled, msgFailed, msgPaused, msgComplete;
     private long lastCallUpdateNotification = 0;
+    private long lastUpdateEvent = 0;
     private boolean saveInPublicStorage;
 
     public DownloadWorker(@NonNull final Context context,
@@ -402,8 +403,14 @@ public class DownloadWorker extends Worker implements MethodChannel.MethodCallHa
                 // using isStopped() to monitor canceling task
                 while ((bytesRead = inputStream.read(buffer)) != -1 && !isStopped()) {
                     count += bytesRead;
-                    int progress = (int) ((count * 100) / (contentLength + downloadedBytes));
+                    double progressDouble = (count * 100.0) / (contentLength + downloadedBytes);
+                    int progress = (int) progressDouble;
                     outputStream.write(buffer, 0, bytesRead);
+
+                    if (System.currentTimeMillis() - lastUpdateEvent > 1000) {
+                        lastUpdateEvent = System.currentTimeMillis();
+                        sendUpdateProcessEvent(DownloadStatus.RUNNING, progressDouble);
+                    }
 
                     if ((lastProgress == 0 || progress > lastProgress + STEP_UPDATE || progress == 100)
                             && progress != lastProgress) {
@@ -415,7 +422,7 @@ public class DownloadWorker extends Worker implements MethodChannel.MethodCallHa
                         // a new bunch of data fetched and a notification sent
                         taskDao.updateTask(getId().toString(), DownloadStatus.RUNNING, progress);
 
-                        updateNotification(context, filename, DownloadStatus.RUNNING, progress, null, false);
+                        updateNotification(context, filename, DownloadStatus.RUNNING, progress, null, false, false);
                     }
                 }
 
@@ -602,7 +609,13 @@ public class DownloadWorker extends Worker implements MethodChannel.MethodCallHa
     }
 
     private void updateNotification(Context context, String title, int status, int progress, PendingIntent intent, boolean finalize) {
-        sendUpdateProcessEvent(status, progress);
+        updateNotification(context, title, status, progress, intent, finalize, true);
+    }
+
+    private void updateNotification(Context context, String title, int status, int progress, PendingIntent intent, boolean finalize, boolean sendUpdateEvent) {
+        if (sendUpdateEvent) {
+            sendUpdateProcessEvent(status, progress);
+        }
 
         // Show the notification
         if (showNotification) {
@@ -678,6 +691,10 @@ public class DownloadWorker extends Worker implements MethodChannel.MethodCallHa
     }
 
     private void sendUpdateProcessEvent(int status, int progress) {
+        sendUpdateProcessEvent(status, (double) progress);
+    }
+
+    private void sendUpdateProcessEvent(int status, double progress) {
         final List<Object> args = new ArrayList<>();
         long callbackHandle = getInputData().getLong(ARG_CALLBACK_HANDLE, 0);
         args.add(callbackHandle);

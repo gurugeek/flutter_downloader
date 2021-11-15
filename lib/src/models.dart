@@ -10,13 +10,13 @@ class DownloadTaskStatus {
 
   static DownloadTaskStatus from(int value) => DownloadTaskStatus(value);
 
-  static const undefined = const DownloadTaskStatus(0);
-  static const enqueued = const DownloadTaskStatus(1);
-  static const running = const DownloadTaskStatus(2);
-  static const complete = const DownloadTaskStatus(3);
-  static const failed = const DownloadTaskStatus(4);
-  static const canceled = const DownloadTaskStatus(5);
-  static const paused = const DownloadTaskStatus(6);
+  static const undefined = DownloadTaskStatus(0);
+  static const enqueued = DownloadTaskStatus(1);
+  static const running = DownloadTaskStatus(2);
+  static const complete = DownloadTaskStatus(3);
+  static const failed = DownloadTaskStatus(4);
+  static const canceled = DownloadTaskStatus(5);
+  static const paused = DownloadTaskStatus(6);
 
   @override
   bool operator ==(Object o) {
@@ -47,22 +47,23 @@ class DownloadTaskStatus {
 class DownloadTask {
   final String taskId;
   final DownloadTaskStatus status;
-  final int progress;
+  final double progress;
   final String url;
   final String? filename;
   final String savedDir;
   final int timeCreated;
 
-  DownloadTask(
-      {required this.taskId,
-      required this.status,
-      required this.progress,
-      required this.url,
-      required this.filename,
-      required this.savedDir,
-      required this.timeCreated});
+  DownloadTask({
+    required this.taskId,
+    required this.status,
+    required this.progress,
+    required this.url,
+    required this.filename,
+    required this.savedDir,
+    required this.timeCreated,
+  });
 
   @override
   String toString() =>
-      "DownloadTask(taskId: $taskId, status: $status, progress: $progress, url: $url, filename: $filename, savedDir: $savedDir, timeCreated: $timeCreated)";
+      'DownloadTask(taskId: $taskId, status: $status, progress: $progress, url: $url, filename: $filename, savedDir: $savedDir, timeCreated: $timeCreated)';
 }

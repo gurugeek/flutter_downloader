@@ -1,13 +1,13 @@
-import 'dart:isolate';
-import 'dart:ui';
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:ui';
 
-import 'package:device_info/device_info.dart';
 import 'package:android_path_provider/android_path_provider.dart';
+import 'package:device_info/device_info.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 const debug = true;
@@ -22,8 +22,6 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final platform = Theme.of(context).platform;
-
     return new MaterialApp(
       title: 'Flutter Demo',
       theme: new ThemeData(
@@ -31,16 +29,13 @@ class MyApp extends StatelessWidget {
       ),
       home: new MyHomePage(
         title: 'Downloader',
-        platform: platform,
       ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget with WidgetsBindingObserver {
-  final TargetPlatform? platform;
-
-  MyHomePage({Key? key, this.title, this.platform}) : super(key: key);
+  MyHomePage({Key? key, this.title}) : super(key: key);
 
   final String? title;
 
@@ -149,7 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
       String? id = data[0];
       DownloadTaskStatus? status = data[1];
-      int? progress = data[2];
+      double? progress = data[2];
 
       if (_tasks != null && _tasks!.isNotEmpty) {
         final task = _tasks!.firstWhere((task) => task.taskId == id);
@@ -166,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   static void downloadCallback(
-      String id, DownloadTaskStatus status, int progress) {
+      String id, DownloadTaskStatus status, double progress) {
     if (debug) {
       print(
           'Background Isolate Callback: task ($id) is in status ($status) and process ($progress)');
@@ -204,7 +199,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       onItemClick: (task) {
                         _openDownloadedFile(task).then((success) {
                           if (!success) {
-                            Scaffold.of(context).showSnackBar(SnackBar(
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                                 content: Text('Cannot open this file')));
                           }
                         });
@@ -253,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
               SizedBox(
                 height: 32.0,
               ),
-              FlatButton(
+              TextButton(
                   onPressed: () {
                     _retryRequestPermission();
                   },
@@ -284,16 +279,12 @@ class _MyHomePageState extends State<MyHomePage> {
   void _requestDownload(_TaskInfo task) async {
     task.taskId = await FlutterDownloader.enqueue(
       url: task.link!,
-      headers: {"auth": "test_for_sql_encoding"},
+      headers: {'auth': 'test_for_sql_encoding'},
       savedDir: _localPath,
       showNotification: true,
       openFileFromNotification: true,
       saveInPublicStorage: true,
     );
-  }
-
-  void _cancelDownload(_TaskInfo task) async {
-    await FlutterDownloader.cancel(taskId: task.taskId!);
   }
 
   void _pauseDownload(_TaskInfo task) async {
@@ -328,8 +319,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<bool> _checkPermission() async {
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-    if (widget.platform == TargetPlatform.android &&
-        androidInfo.version.sdkInt <= 28) {
+    if (Platform.isAndroid && androidInfo.version.sdkInt <= 28) {
       final status = await Permission.storage.status;
       if (status != PermissionStatus.granted) {
         final result = await Permission.storage.request();
@@ -573,7 +563,7 @@ class _TaskInfo {
   final String? link;
 
   String? taskId;
-  int? progress = 0;
+  double? progress = 0;
   DownloadTaskStatus? status = DownloadTaskStatus.undefined;
 
   _TaskInfo({this.name, this.link});
