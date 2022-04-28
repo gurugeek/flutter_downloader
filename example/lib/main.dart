@@ -317,6 +317,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<bool> _checkPermission() async {
+    if (Platform.isIOS) return true;
+
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
     if (Platform.isAndroid && androidInfo.version.sdkInt <= 28) {
