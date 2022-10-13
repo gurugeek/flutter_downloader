@@ -1,28 +1,42 @@
-///
-/// A class defines a set of possible statuses of a download task
-///
+/// Defines a set of possible states which a [DownloadTask] can be in.
+@pragma('vm:entry-point')
 class DownloadTaskStatus {
-  final int _value;
-
+  /// Creates a new [DownloadTaskStatus].
   const DownloadTaskStatus(int value) : _value = value;
 
+  final int _value;
+
+  /// The underlying index of this status.
   int get value => _value;
 
-  static DownloadTaskStatus from(int value) => DownloadTaskStatus(value);
-
+  /// Status of the task is either unknown or corrupted.
   static const undefined = DownloadTaskStatus(0);
+
+  /// The task is scheduled, but is not running yet.
   static const enqueued = DownloadTaskStatus(1);
+
+  /// The task is in progress.
   static const running = DownloadTaskStatus(2);
+
+  /// The task has completed successfully.
   static const complete = DownloadTaskStatus(3);
+
+  /// The task has failed.
   static const failed = DownloadTaskStatus(4);
+
+  /// The task was canceled and cannot be resumed.
   static const canceled = DownloadTaskStatus(5);
+
+  /// The task was paused and can be resumed.
   static const paused = DownloadTaskStatus(6);
 
   @override
-  bool operator ==(Object o) {
-    if (identical(this, o)) return true;
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
 
-    return o is DownloadTaskStatus && o._value == _value;
+    return other is DownloadTaskStatus && other._value == _value;
   }
 
   @override
@@ -32,27 +46,11 @@ class DownloadTaskStatus {
   String toString() => 'DownloadTaskStatus($_value)';
 }
 
+/// Encapsulates all information of a single download task.
 ///
-/// A model class encapsulates all task information according to data in Sqlite
-/// database.
-///
-/// * [taskId] the unique identifier of a download task
-/// * [status] the latest status of a download task
-/// * [progress] the latest progress value of a download task
-/// * [url] the download link
-/// * [filename] the local file name of a downloaded file
-/// * [savedDir] the absolute path of the directory where the downloaded file is saved
-/// * [timeCreated] milliseconds since the Unix epoch (midnight, January 1, 1970 UTC)
-///
+/// This is also the structure of the record saved in the SQLite database.
 class DownloadTask {
-  final String taskId;
-  final DownloadTaskStatus status;
-  final double progress;
-  final String url;
-  final String? filename;
-  final String savedDir;
-  final int timeCreated;
-
+  /// Creates a new [DownloadTask].
   DownloadTask({
     required this.taskId,
     required this.status,
@@ -62,6 +60,27 @@ class DownloadTask {
     required this.savedDir,
     required this.timeCreated,
   });
+
+  /// Unique identifier of this task.
+  final String taskId;
+
+  /// Status of this task.
+  final DownloadTaskStatus status;
+
+  /// Progress between 0 (inclusive) and 100 (inclusive).
+  final double progress;
+
+  /// URL from which the file is downloaded.
+  final String url;
+
+  /// Local file name of the downloaded file.
+  final String? filename;
+
+  /// Absolute path to the directory where the downloaded file will saved.
+  final String savedDir;
+
+  /// Timestamp when the task was created.
+  final int timeCreated;
 
   @override
   String toString() =>
